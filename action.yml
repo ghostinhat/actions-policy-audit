@@ -1,0 +1,35 @@
+name: "Actions Policy Audit"
+description: "Audit GitHub Actions workflows for bounded cost and least-privilege policy"
+
+inputs:
+  path:
+    description: "Repository root or workflow file to audit"
+    required: false
+    default: "."
+  format:
+    description: "Output format: text or json"
+    required: false
+    default: "text"
+  fail-on:
+    description: "Failure threshold: high, any, or none"
+    required: false
+    default: "high"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Audit workflow policy
+      shell: bash
+      env:
+        AUDIT_TARGET: ${{ inputs.path }}
+        AUDIT_FORMAT: ${{ inputs.format }}
+        AUDIT_FAIL_ON: ${{ inputs.fail-on }}
+      run: >-
+        python3 "$GITHUB_ACTION_PATH/actions_policy_audit.py"
+        "$AUDIT_TARGET"
+        --format "$AUDIT_FORMAT"
+        --fail-on "$AUDIT_FAIL_ON"
+
+branding:
+  icon: "shield"
+  color: "blue"
