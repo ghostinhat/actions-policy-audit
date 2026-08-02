@@ -1,0 +1,56 @@
+name: Publish verified release
+
+on:
+  push:
+    tags:
+      - "v0.*.*"
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the tagged source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Verify the release contents
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          [[ "$GITHUB_REF_TYPE" == "tag" ]]
+          [[ "$GITHUB_REF_NAME" =~ ^v0\.[0-9]+\.[0-9]+$ ]]
+          [[ "$(git cat-file -t "refs/tags/$GITHUB_REF_NAME")" == "tag" ]]
+          expected="$(printf '%s\n' \
+            .github/workflows/release.yml \
+            LICENSE \
+            README.md \
+            action.yml \
+            actions_policy_audit.py \
+            tests/test_audit.py \
+            verify.sh | sort)"
+          actual="$(git ls-files | sort)"
+          [[ "$actual" == "$expected" ]]
+          ./verify.sh
+
+      - name: Publish the ordinary GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            exit 0
+          fi
+          notes="$(git for-each-ref --format='%(contents)' "refs/tags/$GITHUB_REF_NAME")"
+          [[ -n "$notes" ]]
+          gh release create "$GITHUB_REF_NAME" \
+            --verify-tag \
+            --title "Actions Policy Audit $GITHUB_REF_NAME" \
+            --notes "$notes"

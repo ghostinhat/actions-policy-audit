@@ -54,6 +54,21 @@ class AuditTests(unittest.TestCase):
         self.assertIn("Does not transmit", readme)
         self.assertIn("MIT License", license_text)
 
+    def test_public_release_workflow_is_tag_only_and_sha_pinned(self):
+        product_root = Path(__file__).resolve().parents[1]
+        workflow_path = product_root / "PUBLIC_RELEASE_WORKFLOW.yml"
+        if not workflow_path.exists():
+            workflow_path = product_root / ".github" / "workflows" / "release.yml"
+        workflow = workflow_path.read_text(encoding="utf-8")
+        self.assertIn("push:", workflow)
+        self.assertIn('      - "v0.*.*"', workflow)
+        self.assertNotIn("pull_request:", workflow)
+        self.assertNotIn("workflow_dispatch:", workflow)
+        self.assertIn("permissions:\n  contents: read", workflow)
+        self.assertIn("contents: write", workflow)
+        self.assertIn("actions/checkout@11d5960a326750d5838078e36cf38b85af677262", workflow)
+        self.assertIn('gh release create "$GITHUB_REF_NAME"', workflow)
+
 
 if __name__ == "__main__":
     unittest.main()
