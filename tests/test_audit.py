@@ -66,7 +66,7 @@ class AuditTests(unittest.TestCase):
         self.assertNotIn("workflow_dispatch:", workflow)
         self.assertIn("permissions:\n  contents: read", workflow)
         self.assertIn("contents: write", workflow)
-        self.assertIn("actions/checkout@11d5960a326750d5838078e36cf38b85af677262", workflow)
+        self.assertIn("actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09", workflow)
         self.assertIn('gh release create "$GITHUB_REF_NAME"', workflow)
 
 
