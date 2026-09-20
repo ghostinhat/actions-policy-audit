@@ -26,7 +26,12 @@ jobs:
           set -Eeuo pipefail
           [[ "$GITHUB_REF_TYPE" == "tag" ]]
           [[ "$GITHUB_REF_NAME" =~ ^v0\.[0-9]+\.[0-9]+$ ]]
-          [[ "$(git cat-file -t "refs/tags/$GITHUB_REF_NAME")" == "tag" ]]
+          # Checkout may resolve its local tag ref to the peeled commit.
+          # Read the remote annotation into a separate local ref without
+          # changing any public ref or weakening the annotated-tag check.
+          git fetch --no-tags origin "refs/tags/$GITHUB_REF_NAME:refs/release-verification/source-tag"
+          [[ "$(git cat-file -t refs/release-verification/source-tag)" == "tag" ]]
+          [[ "$(git rev-parse 'refs/release-verification/source-tag^{commit}')" == "$(git rev-parse HEAD)" ]]
           expected="$(printf '%s\n' \
             .github/workflows/release.yml \
             LICENSE \
@@ -48,7 +53,7 @@ jobs:
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             exit 0
           fi
-          notes="$(git for-each-ref --format='%(contents)' "refs/tags/$GITHUB_REF_NAME")"
+          notes="$(git for-each-ref --format='%(contents)' refs/release-verification/source-tag)"
           [[ -n "$notes" ]]
           gh release create "$GITHUB_REF_NAME" \
             --verify-tag \
